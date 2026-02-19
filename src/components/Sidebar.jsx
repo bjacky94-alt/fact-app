@@ -1,10 +1,11 @@
 import React from 'react'
-import { Home } from 'lucide-react'
+import { Home, Settings as SettingsIcon } from 'lucide-react'
 import ThemeToggle from './ThemeToggle'
 
 export default function Sidebar({ page, setPage, data, setData }) {
   const items = [
-    { id: 'dashboard', label: 'Dashboard', icon: Home }
+    { id: 'dashboard', label: 'Dashboard', icon: Home },
+    { id: 'settings', label: 'Paramètres', icon: SettingsIcon }
   ]
 
   function toggleCollapse() {
