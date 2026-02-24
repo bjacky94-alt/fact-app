@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirection...</title>
+    
+    <!-- Script pour rediriger vers index.html avec le bon chemin -->
+    <script>
+      // Sauvegarder le chemin demandé et rediriger vers la racine
+      sessionStorage.redirect = location.href;
+      location.replace('/fact-app/');
+    </script>
+  </head>
+  <body>
+    <p>Redirection en cours...</p>
+  </body>
+</html>
