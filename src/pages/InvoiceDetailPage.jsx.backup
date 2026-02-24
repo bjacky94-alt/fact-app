@@ -1,0 +1,291 @@
+import React, { useState, useEffect } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import { ArrowLeft, Save, Trash2 } from 'lucide-react'
+
+export default function InvoiceDetailPage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const [invoice, setInvoice] = useState({
+    id: id || Date.now().toString(),
+    number: 'FAC-001',
+    date: new Date().toISOString().split('T')[0],
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+    client: '',
+    email: '',
+    address: '',
+    items: [
+      { id: 1, description: '', quantity: 1, unitPrice: 0, total: 0 },
+    ],
+    notes: '',
+    amountHT: 0,
+    tva: 0,
+    amountTTC: 0,
+  })
+
+  useEffect(() => {
+    if (id && id !== 'new') {
+      const stored = localStorage.getItem('nodebox_invoices')
+      if (stored) {
+        const invoices = JSON.parse(stored)
+        const found = invoices.find((inv) => inv.id === id)
+        if (found) setInvoice(found)
+      }
+    }
+  }, [id])
+
+  const handleItemChange = (index, field, value) => {
+    const newItems = [...invoice.items]
+    newItems[index][field] = field === 'quantity' || field === 'unitPrice' ? parseFloat(value) || 0 : value
+    newItems[index].total = (newItems[index].quantity * newItems[index].unitPrice) || 0
+    setInvoice((prev) => ({ ...prev, items: newItems }))
+  }
+
+  const addItem = () => {
+    setInvoice((prev) => ({
+      ...prev,
+      items: [...prev.items, { id: Date.now(), description: '', quantity: 1, unitPrice: 0, total: 0 }],
+    }))
+  }
+
+  const removeItem = (index) => {
+    setInvoice((prev) => ({
+      ...prev,
+      items: prev.items.filter((_, i) => i !== index),
+    }))
+  }
+
+  const calculateTotals = () => {
+    const ht = invoice.items.reduce((sum, item) => sum + (item.total || 0), 0)
+    const tva = ht * 0.2
+    const ttc = ht + tva
+    return { ht, tva, ttc }
+  }
+
+  const handleSave = () => {
+    const { ht, tva, ttc } = calculateTotals()
+    const updated = { ...invoice, amountHT: ht, tva, amountTTC: ttc }
+    
+    const stored = localStorage.getItem('nodebox_invoices')
+    const invoices = stored ? JSON.parse(stored) : []
+    const index = invoices.findIndex((inv) => inv.id === invoice.id)
+    
+    if (index >= 0) {
+      invoices[index] = updated
+    } else {
+      invoices.push(updated)
+    }
+    
+    localStorage.setItem('nodebox_invoices', JSON.stringify(invoices))
+    navigate('/invoices')
+  }
+
+  const handleDelete = () => {
+    const stored = localStorage.getItem('nodebox_invoices')
+    if (stored) {
+      const invoices = JSON.parse(stored).filter((inv) => inv.id !== invoice.id)
+      localStorage.setItem('nodebox_invoices', JSON.stringify(invoices))
+      navigate('/invoices')
+    }
+  }
+
+  const { ht, tva, ttc } = calculateTotals()
+
+  return (
+    <div className="section">
+      <div className="card">
+        <div className="cardHeader">
+          <div className="row">
+            <div>
+              <div style={{ fontWeight: 900 }}>
+                {id === 'new' ? 'Nouvelle facture' : 'Éditer la facture'}
+              </div>
+              <div className="hint">Informations générales et client</div>
+            </div>
+            <button onClick={() => navigate('/invoices')} className="btn" type="button">
+              <ArrowLeft size={18} />
+              Retour
+            </button>
+          </div>
+        </div>
+        <div className="cardBody section">
+          <div className="grid2">
+            <div className="field">
+              <div className="label">N° Facture</div>
+              <input
+                className="input"
+                type="text"
+                value={invoice.number}
+                onChange={(e) => setInvoice((prev) => ({ ...prev, number: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <div className="label">Date</div>
+              <input
+                className="input"
+                type="date"
+                value={invoice.date}
+                onChange={(e) => setInvoice((prev) => ({ ...prev, date: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <div className="label">Date limite</div>
+              <input
+                className="input"
+                type="date"
+                value={invoice.dueDate}
+                onChange={(e) => setInvoice((prev) => ({ ...prev, dueDate: e.target.value }))}
+              />
+            </div>
+          </div>
+
+          <div className="divider" />
+
+          <div className="grid2">
+            <div className="field">
+              <div className="label">Nom/Entreprise</div>
+              <input
+                className="input"
+                type="text"
+                value={invoice.client}
+                onChange={(e) => setInvoice((prev) => ({ ...prev, client: e.target.value }))}
+              />
+            </div>
+            <div className="field">
+              <div className="label">Email</div>
+              <input
+                className="input"
+                type="email"
+                value={invoice.email}
+                onChange={(e) => setInvoice((prev) => ({ ...prev, email: e.target.value }))}
+              />
+            </div>
+          </div>
+          <div className="field">
+            <div className="label">Adresse</div>
+            <input
+              className="input"
+              type="text"
+              value={invoice.address}
+              onChange={(e) => setInvoice((prev) => ({ ...prev, address: e.target.value }))}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="cardHeader">Lignes</div>
+        <div className="cardBody section">
+          <div className="tableWrap">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>Description</th>
+                  <th>Quantité</th>
+                  <th>Prix unitaire</th>
+                  <th>Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {invoice.items.map((item, index) => (
+                  <tr key={item.id}>
+                    <td>
+                      <input
+                        className="input"
+                        type="text"
+                        value={item.description}
+                        onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                        placeholder="Description"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        type="number"
+                        value={item.quantity}
+                        onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                        min="1"
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        type="number"
+                        value={item.unitPrice}
+                        onChange={(e) => handleItemChange(index, 'unitPrice', e.target.value)}
+                        min="0"
+                        step="0.01"
+                      />
+                    </td>
+                    <td>{item.total.toFixed(2)}€</td>
+                    <td>
+                      <button
+                        onClick={() => removeItem(index)}
+                        className="btn"
+                        type="button"
+                      >
+                        ×
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <button onClick={addItem} className="btn" type="button">
+            + Ajouter une ligne
+          </button>
+        </div>
+      </div>
+
+      <div className="card">
+        <div className="cardHeader">Notes & Totaux</div>
+        <div className="cardBody section">
+          <div className="field">
+            <div className="label">Notes</div>
+            <textarea
+              className="input"
+              value={invoice.notes}
+              onChange={(e) => setInvoice((prev) => ({ ...prev, notes: e.target.value }))}
+              rows="3"
+              placeholder="Notes additionnelles..."
+            />
+          </div>
+
+          <div className="divider" />
+
+          <div className="row">
+            <span className="muted">Total HT</span>
+            <strong>{ht.toFixed(2)}€</strong>
+          </div>
+          <div className="row">
+            <span className="muted">TVA (20%)</span>
+            <strong>{tva.toFixed(2)}€</strong>
+          </div>
+          <div className="row">
+            <span className="label">Total TTC</span>
+            <strong>{ttc.toFixed(2)}€</strong>
+          </div>
+
+          <div className="divider" />
+
+          <div className="row">
+            <button onClick={() => navigate('/invoices')} className="btn" type="button">
+              Annuler
+            </button>
+            <div className="actions">
+              <button onClick={handleDelete} className="btn" type="button">
+                <Trash2 size={16} />
+                Supprimer
+              </button>
+              <button onClick={handleSave} className="btnPrimary" type="button">
+                <Save size={16} />
+                Enregistrer
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
