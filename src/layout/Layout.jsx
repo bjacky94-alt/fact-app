@@ -52,7 +52,7 @@ export default function Layout() {
     <div className={`appFrame ${isCollapsed ? 'isCollapsed' : ''}`}>
       <aside className="sidebarFixed">
         <div className="brand">
-          <div className="logoMark" />
+          <img src="/logo.svg" alt="NODEBOX Logo" className="logoMark" style={{ width: 40, height: 40 }} />
           <div className="brandText">
             <div className="brandTitle">NODEBOX</div>
             <div className="brandSub muted small">Facturation & Pilotage</div>
