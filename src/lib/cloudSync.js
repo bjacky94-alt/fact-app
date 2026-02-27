@@ -93,21 +93,29 @@ export const pushToCloud = async () => {
       }
     }
 
+    const payload = {
+      data,
+      lastSync: new Date().toISOString()
+    }
+    const payloadSize = new Blob([JSON.stringify(payload)]).size
+
     console.log('📦 Données à sauvegarder:', Object.keys(data))
+    console.log(`📏 Taille payload: ${(payloadSize / 1024).toFixed(2)} Ko`)
     
     const userDocRef = doc(db, 'users', currentUserId)
     
-    // Ajouter un timeout de 10 secondes
-    const savePromise = setDoc(userDocRef, {
-      data,
-      lastSync: new Date().toISOString()
-    }, { merge: true })
-    
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Timeout: La sauvegarde prend trop de temps')), 10000)
-    )
-    
+    // Ajouter un timeout de 30 secondes
+    const savePromise = setDoc(userDocRef, payload, { merge: true })
+
+    let timeoutId
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        reject(new Error('Timeout: La sauvegarde prend trop de temps'))
+      }, 30000)
+    })
+
     await Promise.race([savePromise, timeoutPromise])
+    clearTimeout(timeoutId)
 
     console.log('✅ Données synchronisées vers le cloud')
     return true
