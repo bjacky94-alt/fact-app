@@ -29,8 +29,21 @@ export const enableCloudSync = async (userId) => {
   currentUserId = userId
   syncEnabled = true
 
-  // Charger les données du cloud au démarrage
-  await pullFromCloud()
+  // Vérifier s'il y a des données locales
+  const hasLocalData = SYNC_KEYS.some(key => localStorage.getItem(key) !== null)
+  
+  // D'abord, charger les données du cloud
+  console.log('📥 Chargement des données du cloud...')
+  const hadCloudData = await pullFromCloud()
+
+  // Ensuite, envoyer les données locales vers le cloud
+  // (pour fusionner ou sauvegarder les données locales)
+  if (hasLocalData) {
+    console.log('📤 Sauvegarde des données locales vers le cloud...')
+    await pushToCloud()
+  } else if (!hadCloudData) {
+    console.log('ℹ️ Aucune donnée locale ou cloud trouvée')
+  }
 
   // Écouter les changements du cloud
   listenToCloudChanges()
@@ -84,6 +97,7 @@ export const pushToCloud = async () => {
 
 /**
  * Récupérer les données du cloud
+ * @returns {Promise<boolean>} true si des données existent dans le cloud, false sinon
  */
 export const pullFromCloud = async () => {
   if (!syncEnabled || !currentUserId || !db) return false
@@ -95,16 +109,21 @@ export const pullFromCloud = async () => {
     if (docSnap.exists()) {
       const cloudData = docSnap.data().data || {}
       
-      // Fusionner avec les données locales
-      for (const key of SYNC_KEYS) {
-        if (cloudData[key] !== undefined) {
-          localStorage.setItem(key, cloudData[key])
+      // Vérifier s'il y a vraiment des données
+      const hasData = Object.keys(cloudData).length > 0
+      
+      if (hasData) {
+        // Fusionner avec les données locales
+        for (const key of SYNC_KEYS) {
+          if (cloudData[key] !== undefined) {
+            localStorage.setItem(key, cloudData[key])
+          }
         }
-      }
 
-      console.log('✅ Données récupérées du cloud')
-      window.dispatchEvent(new Event('cloudSyncUpdate'))
-      return true
+        console.log('✅ Données récupérées du cloud')
+        window.dispatchEvent(new Event('cloudSyncUpdate'))
+        return true
+      }
     }
   } catch (error) {
     console.error('❌ Erreur récupération cloud:', error)

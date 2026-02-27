@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Cloud, CloudOff, RefreshCw } from 'lucide-react'
-import { getSyncStatus, syncNow } from '../lib/cloudSync'
+import { Cloud, CloudOff, Upload } from 'lucide-react'
+import { getSyncStatus, pushToCloud } from '../lib/cloudSync'
 
 export default function CloudSyncStatus() {
   const [status, setStatus] = useState(getSyncStatus())
   const [syncing, setSyncing] = useState(false)
+  const [message, setMessage] = useState('')
 
   useEffect(() => {
     const handleUpdate = () => {
@@ -21,15 +22,34 @@ export default function CloudSyncStatus() {
     }
   }, [])
 
-  const handleSync = async () => {
+  const handleSaveToCloud = async () => {
     setSyncing(true)
-    await syncNow()
-    setTimeout(() => setSyncing(false), 1000)
+    setMessage('Sauvegarde...')
+    
+    const success = await pushToCloud()
+    
+    if (success) {
+      setMessage('✅ Données sauvegardées !')
+    } else {
+      setMessage('❌ Erreur de sauvegarde')
+    }
+    
+    setTimeout(() => {
+      setSyncing(false)
+      setMessage('')
+    }, 3000)
   }
 
   if (!status.enabled) {
     return (
-      <div className="flex items-center gap-2 text-sm text-gray-500">
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        fontSize: '13px', 
+        color: 'var(--muted)',
+        marginBottom: '8px'
+      }}>
         <CloudOff size={16} />
         <span>Hors ligne</span>
       </div>
@@ -37,17 +57,62 @@ export default function CloudSyncStatus() {
   }
 
   return (
-    <div className="flex items-center gap-2 text-sm text-green-600">
-      <Cloud size={16} />
-      <span>Synchronisé</span>
+    <div style={{ marginBottom: '8px' }}>
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        fontSize: '13px', 
+        color: '#10b981',
+        marginBottom: '10px'
+      }}>
+        <Cloud size={16} />
+        <span>Connecté au cloud</span>
+      </div>
+      
       <button
-        onClick={handleSync}
+        onClick={handleSaveToCloud}
         disabled={syncing}
-        className="p-1 hover:bg-gray-100 rounded transition-colors disabled:opacity-50"
-        title="Synchroniser maintenant"
+        style={{
+          width: '100%',
+          padding: '10px',
+          background: syncing ? '#94a3b8' : '#4f46e5',
+          color: 'white',
+          border: 'none',
+          borderRadius: '12px',
+          fontSize: '13px',
+          fontWeight: '600',
+          cursor: syncing ? 'not-allowed' : 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: '8px',
+          transition: 'all 0.2s ease',
+          opacity: syncing ? 0.6 : 1
+        }}
+        onMouseOver={(e) => {
+          if (!syncing) e.currentTarget.style.background = '#4338ca'
+        }}
+        onMouseOut={(e) => {
+          if (!syncing) e.currentTarget.style.background = '#4f46e5'
+        }}
+        title="Sauvegarder toutes les données dans le cloud"
       >
-        <RefreshCw size={14} className={syncing ? 'animate-spin' : ''} />
+        <Upload size={16} />
+        <span>{syncing ? 'Sauvegarde...' : 'Sauvegarder au cloud'}</span>
       </button>
+      
+      {message && (
+        <div style={{ 
+          fontSize: '12px', 
+          textAlign: 'center', 
+          marginTop: '8px',
+          fontWeight: '500',
+          color: message.includes('✅') ? '#10b981' : '#ef4444'
+        }}>
+          {message}
+        </div>
+      )}
     </div>
   )
 }

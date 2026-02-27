@@ -4,11 +4,22 @@
     <meta charset="UTF-8" />
     <title>Redirection...</title>
     
-    <!-- Script pour rediriger vers index.html avec le bon chemin -->
+    <!-- Redirection vers le hash pour eviter les 404 GitHub Pages -->
     <script>
-      // Sauvegarder le chemin demandé et rediriger vers la racine
-      sessionStorage.redirect = location.href;
-      location.replace('/fact-app/');
+      (function () {
+        var base = '/fact-app'
+        var path = location.pathname
+        if (path.startsWith(base)) {
+          path = path.slice(base.length)
+        }
+        if (!path.startsWith('/')) {
+          path = '/' + path
+        }
+        var target = base + '/#' + (path || '/')
+        if (location.search) target += location.search
+        if (location.hash) target += location.hash
+        location.replace(target)
+      })()
     </script>
   </head>
   <body>

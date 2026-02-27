@@ -83,7 +83,7 @@ export default function Layout() {
         </nav>
 
         <div className="sidebarBottomFixed">
-          <div style={{ paddingLeft: 12, paddingRight: 12, marginBottom: 8 }}>
+          <div style={{ paddingLeft: 12, paddingRight: 12, marginBottom: 12 }}>
             <CloudSyncStatus />
           </div>
           <button
