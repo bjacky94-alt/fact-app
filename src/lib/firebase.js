@@ -23,11 +23,20 @@ let auth = null
 let db = null
 
 try {
+  console.log('[Firebase] Initialisation avec:', {
+    apiKey: firebaseConfig.apiKey ? '✓ défini' : '✗ manquant',
+    authDomain: firebaseConfig.authDomain ? '✓ défini' : '✗ manquant',
+    projectId: firebaseConfig.projectId ? '✓ défini' : '✗ manquant',
+  })
+  
   app = initializeApp(firebaseConfig)
   auth = getAuth(app)
   db = getFirestore(app)
+  
+  console.log('[Firebase] ✅ Initialisé avec succès')
 } catch (error) {
-  console.warn('Firebase not configured properly:', error)
+  console.error('[Firebase] ❌ Erreur d\'initialisation:', error.message)
+  console.warn('Vérifiez que les variables d\'environnement VITE_FIREBASE_* sont correctement configurées')
 }
 
 export { app, auth, db }

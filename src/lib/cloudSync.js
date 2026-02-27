@@ -73,13 +73,15 @@ export const pushToCloud = async () => {
   console.log('🔄 Début de la sauvegarde...')
   
   if (!db) {
-    console.error('❌ Firebase non configuré')
-    return false
+    const error = 'Firebase non configuré. Vérifiez les variables d\'environnement.';
+    console.error('❌', error)
+    throw new Error(error)
   }
   
   if (!syncEnabled || !currentUserId) {
-    console.error('❌ Utilisateur non connecté')
-    return false
+    const error = 'Utilisateur non connecté. Connectez-vous d\'abord.';
+    console.error('❌', error)
+    throw new Error(error)
   }
 
   try {
@@ -112,7 +114,17 @@ export const pushToCloud = async () => {
   } catch (error) {
     console.error('❌ Erreur sync cloud:', error)
     console.error('Détails:', error.message)
-    return false
+    
+    // Messages d'erreur plus explicites
+    if (error.code === 'permission-denied') {
+      throw new Error('Permission refusée. Vérifiez vos règles Firestore.')
+    } else if (error.code === 'unavailable') {
+      throw new Error('Service Firebase indisponible. Vérifiez votre connexion.')
+    } else if (error.message.includes('Timeout')) {
+      throw new Error('La sauvegarde prend trop de temps. Réessayez.')
+    } else {
+      throw new Error(error.message || 'Erreur inconnue lors de la sauvegarde')
+    }
   }
 }
 
