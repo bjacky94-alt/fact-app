@@ -35,31 +35,64 @@ export const sumExpenses = (expenses) => {
   return expenses.reduce((sum, exp) => sum + exp.amount, 0);
 };
 
-// Conversion fichier -> data URL
-export const fileToDataUrl = (file) => {
+// Conversion fichier -> data URL avec timeout
+export const fileToDataUrl = (file, timeoutMs = 30000) => {
+  console.log(`[expenses] Début conversion fichier: ${file.name} (${(file.size / 1024).toFixed(2)} Ko)`);
+  
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
+    let timeoutId;
+    
+    // Timeout pour éviter les blocages
+    timeoutId = setTimeout(() => {
+      reader.abort();
+      console.error(`[expenses] Timeout conversion fichier ${file.name} après ${timeoutMs}ms`);
+      reject(new Error(`Timeout: La conversion du fichier ${file.name} a pris trop de temps`));
+    }, timeoutMs);
+    
     reader.onload = () => {
+      clearTimeout(timeoutId);
+      console.log(`[expenses] Conversion réussie: ${file.name}`);
       resolve({
         name: file.name,
         dataUrl: reader.result,
       });
     };
-    reader.onerror = reject;
+    
+    reader.onerror = (error) => {
+      clearTimeout(timeoutId);
+      console.error(`[expenses] Erreur conversion fichier ${file.name}:`, error);
+      reject(error);
+    };
+    
     reader.readAsDataURL(file);
   });
 };
 
 // CRUD localStorage
 export const loadExpenses = () => {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : [];
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    const expenses = stored ? JSON.parse(stored) : [];
+    console.log(`[expenses] Chargement de ${expenses.length} dépense(s)`);
+    return expenses;
+  } catch (error) {
+    console.error('[expenses] Erreur lors du chargement des dépenses:', error);
+    return [];
+  }
 };
 
 export const saveExpenses = (expenses) => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
-  // Déclencher un événement pour notifier les composants
-  window.dispatchEvent(new CustomEvent('expensesUpdated'));
+  try {
+    console.log(`[expenses] Sauvegarde de ${expenses.length} dépense(s)`);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(expenses));
+    // Déclencher un événement pour notifier les composants
+    window.dispatchEvent(new CustomEvent('expensesUpdated'));
+    console.log('[expenses] Sauvegarde réussie');
+  } catch (error) {
+    console.error('[expenses] Erreur lors de la sauvegarde des dépenses:', error);
+    throw error;
+  }
 };
 
 // Anciennes fonctions (pour compatibilité)
@@ -68,6 +101,7 @@ export const getExpenses = () => {
 };
 
 export const saveExpense = (expense) => {
+  console.log(`[expenses] Ajout d'une nouvelle dépense:`, { id: expense.id, category: expense.category, amount: expense.amount });
   const expenses = getExpenses();
   expenses.push(expense);
   saveExpenses(expenses);
@@ -75,6 +109,7 @@ export const saveExpense = (expense) => {
 };
 
 export const deleteExpense = (id) => {
+  console.log(`[expenses] Suppression de la dépense: ${id}`);
   const expenses = getExpenses().filter((exp) => exp.id !== id);
   saveExpenses(expenses);
 };
