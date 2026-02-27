@@ -26,12 +26,21 @@ export default function CloudSyncStatus() {
     setSyncing(true)
     setMessage('Sauvegarde...')
     
-    const success = await pushToCloud()
+    console.log('🚀 Bouton cliqué - début sauvegarde')
     
-    if (success) {
-      setMessage('✅ Données sauvegardées !')
-    } else {
-      setMessage('❌ Erreur de sauvegarde')
+    try {
+      const success = await pushToCloud()
+      
+      if (success) {
+        setMessage('✅ Données sauvegardées !')
+        console.log('✅ Sauvegarde terminée avec succès')
+      } else {
+        setMessage('❌ Erreur de sauvegarde')
+        console.error('❌ La sauvegarde a échoué')
+      }
+    } catch (error) {
+      setMessage('❌ Erreur: ' + error.message)
+      console.error('❌ Exception lors de la sauvegarde:', error)
     }
     
     setTimeout(() => {

@@ -70,7 +70,17 @@ export const disableCloudSync = () => {
  * Envoyer les données locales vers le cloud
  */
 export const pushToCloud = async () => {
-  if (!syncEnabled || !currentUserId || !db) return false
+  console.log('🔄 Début de la sauvegarde...')
+  
+  if (!db) {
+    console.error('❌ Firebase non configuré')
+    return false
+  }
+  
+  if (!syncEnabled || !currentUserId) {
+    console.error('❌ Utilisateur non connecté')
+    return false
+  }
 
   try {
     const data = {}
@@ -81,16 +91,27 @@ export const pushToCloud = async () => {
       }
     }
 
+    console.log('📦 Données à sauvegarder:', Object.keys(data))
+    
     const userDocRef = doc(db, 'users', currentUserId)
-    await setDoc(userDocRef, {
+    
+    // Ajouter un timeout de 10 secondes
+    const savePromise = setDoc(userDocRef, {
       data,
       lastSync: new Date().toISOString()
     }, { merge: true })
+    
+    const timeoutPromise = new Promise((_, reject) => 
+      setTimeout(() => reject(new Error('Timeout: La sauvegarde prend trop de temps')), 10000)
+    )
+    
+    await Promise.race([savePromise, timeoutPromise])
 
     console.log('✅ Données synchronisées vers le cloud')
     return true
   } catch (error) {
     console.error('❌ Erreur sync cloud:', error)
+    console.error('Détails:', error.message)
     return false
   }
 }
