@@ -67,6 +67,29 @@ export const disableCloudSync = () => {
 }
 
 /**
+ * Enlever les justificatifs (trop volumineux pour Firestore)
+ */
+const stripReceipts = (dataStr) => {
+  try {
+    const parsed = JSON.parse(dataStr)
+    if (!Array.isArray(parsed)) return dataStr
+    
+    // Filtrer les receiptDataUrl des dépenses
+    const stripped = parsed.map(item => {
+      if (item.receiptDataUrl) {
+        const { receiptDataUrl, ...rest } = item
+        return rest
+      }
+      return item
+    })
+    
+    return JSON.stringify(stripped)
+  } catch {
+    return dataStr
+  }
+}
+
+/**
  * Envoyer les données locales vers le cloud
  */
 export const pushToCloud = async () => {
@@ -89,7 +112,13 @@ export const pushToCloud = async () => {
     for (const key of SYNC_KEYS) {
       const value = localStorage.getItem(key)
       if (value !== null) {
-        data[key] = value
+        // Filtrer les justificatifs pour les dépenses
+        if (key === 'nodebox_expenses') {
+          data[key] = stripReceipts(value)
+          console.log('⚠️ Justificatifs exclus de la sync cloud (restent en local)')
+        } else {
+          data[key] = value
+        }
       }
     }
 
@@ -102,16 +131,21 @@ export const pushToCloud = async () => {
     console.log('📦 Données à sauvegarder:', Object.keys(data))
     console.log(`📏 Taille payload: ${(payloadSize / 1024).toFixed(2)} Ko`)
     
+    // Vérifier la taille (max ~800 Ko pour sécurité, limite Firestore = 1 Mo)
+    if (payloadSize > 800000) {
+      throw new Error(`Données trop volumineuses (${(payloadSize / 1024).toFixed(2)} Ko). Contactez le support.`)
+    }
+    
     const userDocRef = doc(db, 'users', currentUserId)
     
-    // Ajouter un timeout de 30 secondes
+    // Ajouter un timeout de 60 secondes
     const savePromise = setDoc(userDocRef, payload, { merge: true })
 
     let timeoutId
     const timeoutPromise = new Promise((_, reject) => {
       timeoutId = setTimeout(() => {
         reject(new Error('Timeout: La sauvegarde prend trop de temps'))
-      }, 30000)
+      }, 60000)
     })
 
     await Promise.race([savePromise, timeoutPromise])
@@ -129,7 +163,7 @@ export const pushToCloud = async () => {
     } else if (error.code === 'unavailable') {
       throw new Error('Service Firebase indisponible. Vérifiez votre connexion.')
     } else if (error.message.includes('Timeout')) {
-      throw new Error('La sauvegarde prend trop de temps. Réessayez.')
+      throw new Error('La sauvegarde prend trop de temps. Essayez de réduire vos données.')
     } else {
       throw new Error(error.message || 'Erreur inconnue lors de la sauvegarde')
     }
