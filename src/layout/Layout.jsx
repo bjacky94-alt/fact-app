@@ -3,7 +3,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import ThemeSwitch from '../components/ThemeSwitch'
 import PremiumSwitch from '../components/PremiumSwitch'
 import StickyFinancialHeader from '../components/StickyFinancialHeader'
-import { useAuth } from '../hooks/useAuth'
+
 import {
   LayoutDashboard,
   Receipt,
@@ -15,8 +15,6 @@ import {
   Wallet,
   Menu,
   X,
-  LogIn,
-  LogOut,
 } from 'lucide-react'
 
 const navItems = [
@@ -33,19 +31,9 @@ const navItems = [
 export default function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
-  const navigate = useNavigate()
-  const { user, signOut } = useAuth()
   const currentTitle =
     navItems.find((item) => location.pathname.startsWith(item.to))?.label ||
     'Facturation'
-
-  const handleAuthClick = () => {
-    if (user) {
-      signOut()
-    } else {
-      navigate('/login')
-    }
-  }
 
   return (
     <div className={`appFrame ${isCollapsed ? 'isCollapsed' : ''}`}>
@@ -82,19 +70,6 @@ export default function Layout() {
         </nav>
 
         <div className="sidebarBottomFixed">
-          <button
-            type="button"
-            className="btnSidebar"
-            onClick={handleAuthClick}
-            style={{ marginBottom: 8 }}
-          >
-            <span className="btnSidebarIcon">
-              {user ? <LogOut size={18} /> : <LogIn size={18} />}
-            </span>
-            <span className="btnSidebarText">
-              {user ? 'Déconnexion' : 'Connexion'}
-            </span>
-          </button>
           <ThemeSwitch />
           <PremiumSwitch />
           <button
