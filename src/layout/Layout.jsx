@@ -3,7 +3,6 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import ThemeSwitch from '../components/ThemeSwitch'
 import PremiumSwitch from '../components/PremiumSwitch'
 import StickyFinancialHeader from '../components/StickyFinancialHeader'
-import CloudSyncStatus from '../components/CloudSyncStatus'
 import { useAuth } from '../hooks/useAuth'
 import {
   LayoutDashboard,
@@ -83,9 +82,6 @@ export default function Layout() {
         </nav>
 
         <div className="sidebarBottomFixed">
-          <div style={{ paddingLeft: 12, paddingRight: 12, marginBottom: 12 }}>
-            <CloudSyncStatus />
-          </div>
           <button
             type="button"
             className="btnSidebar"
