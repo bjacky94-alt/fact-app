@@ -39,8 +39,7 @@ export default function InvoicesPage() {
     return (
       (i.number || "").toLowerCase().includes(term) ||
       (i.clientName || "").toLowerCase().includes(term) ||
-      (i.issueDate || "").includes(term) ||
-      (i.purchaseOrder || "").toLowerCase().includes(term)
+      (i.issueDate || "").includes(term)
     );
   });
 
@@ -235,7 +234,7 @@ export default function InvoicesPage() {
           <input
             className="input"
             type="text"
-            placeholder="🔍 Chercher par N°, client, date ou BC..."
+            placeholder="🔍 Chercher par N°, client ou date..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ width: "100%" }}
@@ -249,9 +248,9 @@ export default function InvoicesPage() {
                 <th>N°</th>
                 <th>Émission</th>
                 <th>Période</th>
-                <th>BC</th>
                 <th>Statut</th>
                 <th>Paiement</th>
+                <th>Montant HT</th>
                 <th>TVA</th>
                 <th>Montant TTC</th>
                 <th></th>
@@ -273,13 +272,15 @@ export default function InvoicesPage() {
                     <td className="muted">
                       {inv.periodStart} → {inv.periodEnd}
                     </td>
-                    <td className="muted">{inv.purchaseOrder || "—"}</td>
                     <td>
                       <span className="badge">
                         {inv.status === "paid" ? "Payée" : "Émise"}
                       </span>
                     </td>
                     <td className="muted">{inv.paymentDate || "—"}</td>
+                    <td style={{ fontWeight: 800 }}>
+                      {fmtEUR(invoiceHT(inv, defaultTjm))}
+                    </td>
                     <td style={{ fontWeight: 800 }}>
                       {fmtEUR(invoiceTVA(inv, defaultTjm))}
                     </td>
