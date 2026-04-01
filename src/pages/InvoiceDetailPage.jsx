@@ -231,7 +231,7 @@ export default function InvoiceDetailPage() {
               onClick={() => {
                 const raw = localStorage.getItem(SETTINGS_KEY);
                 const full = raw ? JSON.parse(raw) : {};
-                downloadInvoicePdf(inv, full, defaultTjm);
+                downloadInvoicePdf(inv, full, defaultTjm, inv.status === "paid");
               }}
               title="Télécharger en PDF"
             >

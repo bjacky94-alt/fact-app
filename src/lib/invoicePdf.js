@@ -36,6 +36,11 @@ const parseISOToFR = (iso) => {
   return `${d}/${m}/${y}`;
 };
 
+const paidLabel = (paymentDate) => {
+  const formattedDate = parseISOToFR(paymentDate);
+  return formattedDate ? `PAYÉE le ${formattedDate}` : "PAYÉE";
+};
+
 const toUTCDate = (iso) => {
   const [y, m, d] = (iso || "").split("-").map((x) => Number(x));
   return new Date(Date.UTC(y, (m || 1) - 1, d || 1));
@@ -125,9 +130,11 @@ function drawWatermark(
   settings,
   pageW,
   pageH,
-  isPaid = false
+  isPaid = false,
+  paymentDate = ""
 ) {
   if (isPaid) {
+    const watermarkLabel = paidLabel(paymentDate);
     // Watermark "PAYÉE" en grand, diagonal et transparent via canvas
     try {
       // Créer un canvas pour le texte roté
@@ -140,7 +147,7 @@ function drawWatermark(
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
       // Configuration du texte - 3x plus grand
-      ctx.font = "bold 420px Arial";
+      ctx.font = "bold 360px Arial";
       ctx.fillStyle = "rgba(220, 20, 60, 0.15)"; // Rouge transparent
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
@@ -149,7 +156,12 @@ function drawWatermark(
       ctx.save();
       ctx.translate(canvas.width / 2, canvas.height / 2);
       ctx.rotate((-45 * Math.PI) / 180);
-      ctx.fillText("PAYÉE", 0, 0);
+      const lines = watermarkLabel.split(" le ");
+      ctx.fillText(lines[0], 0, -120);
+      if (lines[1]) {
+        ctx.font = "bold 220px Arial";
+        ctx.fillText(`le ${lines[1]}`, 0, 160);
+      }
       ctx.restore();
       
       // Convertir en image et l'ajouter au PDF
@@ -166,8 +178,14 @@ function drawWatermark(
         }
         doc.setTextColor(220, 20, 60);
         doc.setFont("helvetica", "bold");
-        doc.setFontSize(100);
-        doc.text("PAYÉE", pageW / 2, pageH / 2, { align: "center" });
+        doc.setFontSize(72);
+        doc.text("PAYÉE", pageW / 2, pageH / 2 - 12, { align: "center" });
+        if (isISO(paymentDate)) {
+          doc.setFontSize(34);
+          doc.text(`le ${parseISOToFR(paymentDate)}`, pageW / 2, pageH / 2 + 30, {
+            align: "center",
+          });
+        }
         if (anyDoc.GState) {
           const gs2 = new anyDoc.GState({ opacity: 1 });
           anyDoc.setGState(gs2);
@@ -673,9 +691,9 @@ function drawFooterSection(
 }
 
 /* ================= Tampon PAYÉE ================= */
-function drawPaidStamp(doc, pageW, pageH) {
+function drawPaidStamp(doc, pageW, pageH, paymentDate = "") {
   const stampW = 120;
-  const stampH = 50;
+  const stampH = 62;
   const stampX = pageW - stampW - 20;
   const stampY = pageH - stampH - 20;
 
@@ -688,7 +706,14 @@ function drawPaidStamp(doc, pageW, pageH) {
   doc.setTextColor(220, 20, 60);
   doc.setFont("helvetica", "bold");
   doc.setFontSize(18);
-  doc.text("PAYÉE", stampX + stampW / 2, stampY + stampH / 2 + 3, { align: "center" });
+  doc.text("PAYÉE", stampX + stampW / 2, stampY + 24, { align: "center" });
+  if (isISO(paymentDate)) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.text(`Le ${parseISOToFR(paymentDate)}`, stampX + stampW / 2, stampY + 42, {
+      align: "center",
+    });
+  }
   
   doc.setTextColor(0, 0, 0);
 }
@@ -703,8 +728,9 @@ export function downloadInvoicePdf(
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageW = doc.internal.pageSize.getWidth();
   const pageH = doc.internal.pageSize.getHeight();
+  const paymentDate = String(inv?.paymentDate || "").trim();
 
-  drawWatermark(doc, settings, pageW, pageH, isPaid);
+  drawWatermark(doc, settings, pageW, pageH, isPaid, paymentDate);
 
   // Header robuste (dynamique)
   let y = drawHeaderLine(doc, inv, settings, pageW);
@@ -720,7 +746,7 @@ export function downloadInvoicePdf(
 
   // Tampon "PAYÉE" en bas à droite si payée
   if (isPaid) {
-    drawPaidStamp(doc, pageW, pageH);
+    drawPaidStamp(doc, pageW, pageH, paymentDate);
   }
 
   doc.save(`${safeFilename(inv.number)}.pdf`);
