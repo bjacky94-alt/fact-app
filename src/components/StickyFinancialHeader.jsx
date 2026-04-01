@@ -13,6 +13,93 @@ function round2(n) {
   return Math.round((Number(n) || 0) * 100) / 100
 }
 
+function isISO(iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '').trim())
+}
+
+function toISO(year, month, day) {
+  const yyyy = String(year)
+  const mm = String(month).padStart(2, '0')
+  const dd = String(day).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd}`
+}
+
+function monthKeyFromISO(iso) {
+  return isISO(iso) ? String(iso).slice(0, 7) : ''
+}
+
+function monthLabel(ym) {
+  const [year, month] = String(ym || '').split('-').map((v) => Number(v))
+  if (!year || !month) return '—'
+  return new Date(year, month - 1, 1).toLocaleDateString('fr-FR', {
+    month: 'long',
+  })
+}
+
+function isWeekday(date) {
+  const day = date.getDay()
+  return day !== 0 && day !== 6
+}
+
+function isHolidayDate(isoDate) {
+  try {
+    const cache = JSON.parse(localStorage.getItem('_holidays_cache') || '{}')
+    const holidaysStr = cache[isoDate]
+    if (holidaysStr === 'holiday') return true
+    if (holidaysStr === 'work') return false
+  } catch {}
+  return false
+}
+
+function firstOfNextMonthFromPeriod(ym) {
+  const [year, month] = String(ym || '').split('-').map((v) => Number(v))
+  if (!year || !month) return ''
+
+  const dt = new Date(year, month, 1)
+  for (let i = 0; i < 10; i += 1) {
+    const currentISO = toISO(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+    if (isWeekday(dt) && !isHolidayDate(currentISO)) return currentISO
+    dt.setDate(dt.getDate() + 1)
+  }
+
+  return toISO(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+}
+
+function firstBusinessDayOfNextMonth(iso) {
+  if (!isISO(iso)) return ''
+
+  const [year, month, day] = iso.split('-').map((v) => Number(v))
+  const dt = new Date(year, month - 1, day)
+  dt.setMonth(dt.getMonth() + 1)
+  dt.setDate(1)
+
+  for (let i = 0; i < 10; i += 1) {
+    const currentISO = toISO(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+    if (isWeekday(dt) && !isHolidayDate(currentISO)) return currentISO
+    dt.setDate(dt.getDate() + 1)
+  }
+
+  return toISO(dt.getFullYear(), dt.getMonth() + 1, dt.getDate())
+}
+
+function calculateVatPaymentDate(declarationDateISO) {
+  if (!isISO(declarationDateISO)) return ''
+
+  const [year, month] = declarationDateISO.split('-').map((x) => Number(x))
+  const declarationQuarter = Math.ceil(Number(month) / 3)
+  let nextQuarter = declarationQuarter + 1
+  let nextYear = year
+
+  if (nextQuarter > 4) {
+    nextQuarter = 1
+    nextYear = year + 1
+  }
+
+  const monthInQuarter = (nextQuarter - 1) * 3 + 2
+  const paymentMonth = String(monthInQuarter).padStart(2, '0')
+  return `${nextYear}-${paymentMonth}-05`
+}
+
 function yearFromISO(iso) {
   const y = Number(String(iso || '').slice(0, 4))
   return Number.isFinite(y) ? y : 0
@@ -62,12 +149,14 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
     window.addEventListener('expensesUpdated', handleDataChange)
     window.addEventListener('taxDataUpdated', handleDataChange)
     window.addEventListener('treasuryUpdated', handleDataChange)
+    window.addEventListener('urssafDataUpdated', handleDataChange)
     
     return () => {
       window.removeEventListener('invoicesUpdated', handleDataChange)
       window.removeEventListener('expensesUpdated', handleDataChange)
       window.removeEventListener('taxDataUpdated', handleDataChange)
       window.removeEventListener('treasuryUpdated', handleDataChange)
+      window.removeEventListener('urssafDataUpdated', handleDataChange)
     }
   }, [])
   
@@ -243,6 +332,157 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
   const totalToProvision = round2(tvaRemaining + urssafRemaining)
   const isBalanceLow = balance < totalToProvision && balance >= 0
 
+  const currentMonthKey = `${curYear}-${String(now.getMonth() + 1).padStart(2, '0')}`
+  const nextMonthKey = monthKeyFromISO(addMonthsISO(`${currentMonthKey}-01`, 1))
+
+  const vatScheduledPayments = (() => {
+    const years = new Set([
+      curYear,
+      ...Object.keys(taxData.byYear || {}).map((year) => Number(year)).filter(Boolean),
+      ...invoices
+        .map((inv) => Number(String(inv.paymentDate || inv.issueDate || '').slice(0, 4)))
+        .filter(Boolean),
+      ...expenses.map((exp) => Number(String(exp.date || '').slice(0, 4))).filter(Boolean),
+    ])
+
+    const rows = []
+
+    for (const year of years) {
+      let total = 0
+      let janToJul = 0
+      let augToDec = 0
+
+      for (const inv of invoices) {
+        if (inv.status !== 'paid') continue
+        const paidDate = String(inv.paymentDate || inv.issueDate || '').trim()
+        if (yearFromISO(paidDate) !== year) continue
+
+        const month = Number(paidDate.slice(5, 7))
+        const vat = invoiceTVA(inv, defaultTjm)
+        total += vat
+        if (month >= 1 && month <= 7) janToJul += vat
+        if (month >= 8 && month <= 12) augToDec += vat
+      }
+
+      const deductible = round2(
+        expenses
+          .filter((exp) => yearFromISO(exp.date) === year)
+          .reduce((sum, exp) => sum + vatFromTTC(exp.amount), 0)
+      )
+
+      const yearInfo = taxData.byYear?.[year] || {}
+      const acompte1Calc = yearInfo.manualAcompte1 !== undefined && yearInfo.manualAcompte1 !== null
+        ? Number(yearInfo.manualAcompte1)
+        : round2(janToJul * ACOMPTES_RATE)
+      const acompte2Calc = yearInfo.manualAcompte2 !== undefined && yearInfo.manualAcompte2 !== null
+        ? Number(yearInfo.manualAcompte2)
+        : round2(augToDec * ACOMPTES_RATE)
+
+      if (acompte1Calc > 0 && !isISO(yearInfo.paidDateAcompte1)) {
+        rows.push({
+          source: 'TVA',
+          label: `TVA acompte ${year}`,
+          amount: round2(acompte1Calc),
+          dueDate: `${year}-07-15`,
+        })
+      }
+
+      if (acompte2Calc > 0 && !isISO(yearInfo.paidDateAcompte2)) {
+        rows.push({
+          source: 'TVA',
+          label: `TVA acompte ${year}`,
+          amount: round2(acompte2Calc),
+          dueDate: `${year}-12-15`,
+        })
+      }
+
+      const netDue = Math.max(round2(total) - deductible, 0)
+      const declaredAmount = Number(yearInfo.declaredCa12Amount) || 0
+      const declaredDueDate = calculateVatPaymentDate(String(yearInfo.declarationDate || '').trim())
+
+      if (declaredAmount > 0 && declaredDueDate && !isISO(yearInfo.paidDate)) {
+        rows.push({
+          source: 'TVA',
+          label: `TVA CA12 ${year}`,
+          amount: round2(declaredAmount),
+          dueDate: declaredDueDate,
+        })
+      } else if (year === curYear && netDue > 0 && !declaredDueDate) {
+        // Pas de date exploitable tant que la déclaration CA12 n'est pas saisie.
+      }
+    }
+
+    return rows.filter((row) => isISO(row.dueDate) && row.amount > 0)
+  })()
+
+  const urssafScheduledPayments = (() => {
+    const grouped = new Map()
+
+    for (const inv of invoices) {
+      if (inv.status !== 'paid') continue
+      const paidDate = String(inv.paymentDate || inv.issueDate || '').trim()
+      if (!isISO(paidDate)) continue
+
+      const ym = paidDate.slice(0, 7)
+      const amountHT = invoiceHT(inv, defaultTjm)
+
+      if (!grouped.has(ym)) {
+        grouped.set(ym, {
+          period: ym,
+          revenueHT: 0,
+        })
+      }
+
+      grouped.get(ym).revenueHT += amountHT
+    }
+
+    return Array.from(grouped.values())
+      .map((row) => {
+        const stored = urssafData.byPeriod?.[row.period] || {}
+        const rate = Number(stored.rate)
+        const effectiveRate = Number.isFinite(rate) && rate > 0
+          ? rate
+          : Number(urssafData.globalRate) || URSSAF_DEFAULT_RATE
+        const declarationDate = String(stored.declarationDate || firstOfNextMonthFromPeriod(row.period))
+        const dueDate = String(stored.expectedDebitDate || firstBusinessDayOfNextMonth(declarationDate) || '')
+        const paidDate = String(stored.paidDate || '').trim()
+        const amountDue = Math.round(((Number(row.revenueHT) || 0) * effectiveRate) / 100)
+
+        return {
+          source: 'URSSAF',
+          label: `URSSAF ${row.period}`,
+          amount: round2(amountDue),
+          dueDate,
+          paidDate,
+        }
+      })
+      .filter((row) => row.amount > 0 && isISO(row.dueDate) && !isISO(row.paidDate))
+  })()
+
+  const paymentSummaryByMonth = (monthKey) => {
+    const vat = round2(
+      vatScheduledPayments
+        .filter((row) => monthKeyFromISO(row.dueDate) === monthKey)
+        .reduce((sum, row) => sum + row.amount, 0)
+    )
+    const urssaf = round2(
+      urssafScheduledPayments
+        .filter((row) => monthKeyFromISO(row.dueDate) === monthKey)
+        .reduce((sum, row) => sum + row.amount, 0)
+    )
+
+    return {
+      monthKey,
+      label: monthLabel(monthKey),
+      vat,
+      urssaf,
+      total: round2(vat + urssaf),
+    }
+  }
+
+  const currentMonthPayments = paymentSummaryByMonth(currentMonthKey)
+  const nextMonthPayments = paymentSummaryByMonth(nextMonthKey)
+
   const textBalanceClass = isBalanceLow ? 'statusDue' : (balance >= 0 ? 'statusGood' : 'statusDue')
   const textTvaClass = tvaRemaining > 0 ? 'statusWarn' : 'statusGood'
   const textUrssafClass = urssafRemaining > 0 ? 'statusWarn' : 'statusGood'
@@ -311,6 +551,30 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
             {fmtEUR(urssafRemaining)}
           </div>
         </div>
+
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'right' }}
+          title={`${fmtEUR(currentMonthPayments.vat)} TVA + ${fmtEUR(currentMonthPayments.urssaf)} URSSAF`}
+        >
+          <div className="muted tiny" style={{ fontSize: 9, letterSpacing: 0.5 }}>
+            🗓️ {currentMonthPayments.label}
+          </div>
+          <div className={`statusText ${currentMonthPayments.total > 0 ? 'statusWarn' : 'statusGood'}`} style={{ fontSize: 13, fontWeight: 700 }}>
+            {fmtEUR(currentMonthPayments.total)}
+          </div>
+        </div>
+
+        <div
+          style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'right' }}
+          title={`${fmtEUR(nextMonthPayments.vat)} TVA + ${fmtEUR(nextMonthPayments.urssaf)} URSSAF`}
+        >
+          <div className="muted tiny" style={{ fontSize: 9, letterSpacing: 0.5 }}>
+            ⏭️ {nextMonthPayments.label}
+          </div>
+          <div className={`statusText ${nextMonthPayments.total > 0 ? 'statusWarn' : 'statusGood'}`} style={{ fontSize: 13, fontWeight: 700 }}>
+            {fmtEUR(nextMonthPayments.total)}
+          </div>
+        </div>
       </div>
     )
   }
@@ -363,6 +627,32 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
           {fmtEUR(urssafRemaining)}
         </div>
         <div className="muted small" style={{ fontSize: 10 }}>À déclarer et payer</div>
+      </div>
+
+      <div style={{ gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 12 }}>
+        <div style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface2)' }}>
+          <div className="muted small" style={{ fontSize: 11, letterSpacing: 0.5 }}>
+            🗓️ À payer en {currentMonthPayments.label}
+          </div>
+          <div className={`statusText ${currentMonthPayments.total > 0 ? 'statusWarn' : 'statusGood'}`} style={{ fontSize: 15, fontWeight: 800, marginTop: 4 }}>
+            {fmtEUR(currentMonthPayments.total)}
+          </div>
+          <div className="muted small" style={{ fontSize: 10, marginTop: 4 }}>
+            TVA {fmtEUR(currentMonthPayments.vat)} • URSSAF {fmtEUR(currentMonthPayments.urssaf)}
+          </div>
+        </div>
+
+        <div style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface2)' }}>
+          <div className="muted small" style={{ fontSize: 11, letterSpacing: 0.5 }}>
+            ⏭️ À payer en {nextMonthPayments.label}
+          </div>
+          <div className={`statusText ${nextMonthPayments.total > 0 ? 'statusWarn' : 'statusGood'}`} style={{ fontSize: 15, fontWeight: 800, marginTop: 4 }}>
+            {fmtEUR(nextMonthPayments.total)}
+          </div>
+          <div className="muted small" style={{ fontSize: 10, marginTop: 4 }}>
+            TVA {fmtEUR(nextMonthPayments.vat)} • URSSAF {fmtEUR(nextMonthPayments.urssaf)}
+          </div>
+        </div>
       </div>
     </div>
   )

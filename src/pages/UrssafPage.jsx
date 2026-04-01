@@ -158,6 +158,7 @@ function loadUrssafData() {
 
 function saveUrssafData(data) {
   localStorage.setItem(URSSAF_KEY, JSON.stringify(data))
+  window.dispatchEvent(new CustomEvent('urssafDataUpdated'))
 }
 
 export default function UrssafPage() {
