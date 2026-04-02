@@ -1,0 +1,12 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /workspaces/fact-app && printf '%s\\\\n%s\\\\n' \"\\$CODESPACE_NAME\" \"\\$GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN\"$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /workspaces/fact-app && git add -A && git commit -m \"Ajout historique devis et améliorations interface\" && git push origin main$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

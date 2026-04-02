@@ -2,6 +2,7 @@ import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Layout from '../layout/Layout'
 import DashboardPage from '../pages/DashboardPage'
+import QuotesPage from '../pages/QuotesPage'
 import InvoicesPage from '../pages/InvoicesPage'
 import InvoiceDetailPage from '../pages/InvoiceDetailPage'
 import ExpensesPage from '../pages/ExpensesPage'
@@ -19,6 +20,7 @@ export default function AppRouter() {
       <Route element={<Layout />}>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
         <Route path="/dashboard" element={<DashboardPage />} />
+        <Route path="/quotes" element={<QuotesPage />} />
         <Route path="/invoices" element={<InvoicesPage />} />
         <Route path="/invoices/:id" element={<InvoiceDetailPage />} />
         <Route path="/expenses" element={<ExpensesPage />} />

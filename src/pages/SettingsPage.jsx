@@ -105,7 +105,6 @@ export default function SettingsPage() {
   const [data, setData] = React.useState(() => loadSettings())
   const [savedMsg, setSavedMsg] = React.useState('')
 
-  const importInputRef = React.useRef(null)
   const restoreFullInputRef = React.useRef(null)
 
   const showMsg = (msg) => {
@@ -119,26 +118,13 @@ export default function SettingsPage() {
 
   const onSave = () => {
     saveSettings(data)
-    showMsg('Enregistre')
+    showMsg('Parametres enregistres')
   }
 
   const onReset = () => {
     setData(DEFAULTS)
     saveSettings(DEFAULTS)
-    showMsg('Reinitialise')
-  }
-
-  const exportToFile = () => {
-    const payload = {
-      app: 'FACT',
-      type: 'settings',
-      version: 1,
-      exportedAt: new Date().toISOString(),
-      data,
-    }
-
-    downloadFile('fact-settings.json', 'application/json', JSON.stringify(payload, null, 2))
-    showMsg('Exporte')
+    showMsg('Parametres reinitialises')
   }
 
   const exportFullBackup = () => {
@@ -159,32 +145,11 @@ export default function SettingsPage() {
       'application/json',
       JSON.stringify(payload, null, 2)
     )
-    showMsg('Backup complet exporte')
+    showMsg('Sauvegarde exportee')
   }
 
   const openRestoreFullDialog = () => {
     restoreFullInputRef.current?.click()
-  }
-
-  const openImportDialog = () => {
-    importInputRef.current?.click()
-  }
-
-  const importFromFile = async (file) => {
-    if (!file) return
-
-    try {
-      const text = await file.text()
-      const parsed = JSON.parse(text)
-      const incoming = parsed?.data ?? parsed
-      const merged = { ...DEFAULTS, ...incoming }
-      setData(merged)
-      saveSettings(merged)
-      showMsg('Importe')
-    } catch (e) {
-      console.error(e)
-      showMsg('Fichier invalide')
-    }
   }
 
   const restoreFullBackupFromFile = async (file) => {
@@ -196,7 +161,7 @@ export default function SettingsPage() {
       const raw = parsed?.raw
 
       if (parsed?.type !== 'full-backup' || !raw || typeof raw !== 'object') {
-        showMsg('Backup invalide')
+        showMsg('Sauvegarde invalide')
         return
       }
 
@@ -211,11 +176,11 @@ export default function SettingsPage() {
 
       const refreshed = loadSettings()
       setData(refreshed)
-      showMsg('Backup restaure')
+      showMsg('Sauvegarde restauree')
       window.setTimeout(() => window.location.reload(), 300)
     } catch (e) {
       console.error(e)
-      showMsg('Backup invalide')
+      showMsg('Sauvegarde invalide')
     }
   }
 
@@ -559,18 +524,6 @@ export default function SettingsPage() {
   return (
     <div className="card">
       <input
-        ref={importInputRef}
-        type="file"
-        accept="application/json"
-        style={{ display: 'none' }}
-        onChange={(e) => {
-          const f = e.target.files?.[0] ?? null
-          void importFromFile(f)
-          e.currentTarget.value = ''
-        }}
-      />
-
-      <input
         ref={restoreFullInputRef}
         type="file"
         accept="application/json"
@@ -585,26 +538,20 @@ export default function SettingsPage() {
       <div className="cardHeader">
         <div className="row">
           <div>
-            <div style={{ fontWeight: 900 }}>Parametres</div>
+            <div style={{ fontWeight: 900 }}>Paramètres</div>
             <div className="hint">
-              Entreprise • Mission/Client • Banque • Logo & Signature
+              Entreprise • Mission • Banque • Logo & signature
             </div>
           </div>
 
           <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
             {savedMsg ? <span className="toast">{savedMsg}</span> : null}
 
-            <button className="btn" onClick={openImportDialog} type="button">
-              Importer parametres
-            </button>
-            <button className="btn" onClick={exportToFile} type="button">
-              Exporter parametres
-            </button>
             <button className="btn" onClick={exportFullBackup} type="button">
-              Backup complet
+              Sauvegarde complete
             </button>
             <button className="btn" onClick={openRestoreFullDialog} type="button">
-              Restaurer complet
+              Restaurer une sauvegarde
             </button>
             <button className="btn" onClick={onReset} type="button">
               Reinitialiser

@@ -16,7 +16,7 @@ Application complète de gestion de facturation pour freelances et micro-entrepr
 - 📱 Accès depuis tous vos appareils
 - 🔄 Synchronisation automatique en temps réel
 - 💾 Sauvegarde automatique dans le cloud
-- 📤 Export/Import des données
+- 💾 Sauvegarde et restauration des données
 
 ### 🎨 Interface
 - Design moderne et responsive
@@ -73,7 +73,7 @@ src/
 ## 💾 Données
 
 ### Mode hors ligne (par défaut)
-Les données sont stockées dans le navigateur (localStorage). Pensez à exporter régulièrement vos données depuis **Paramètres → Export**.
+Les données sont stockées dans le navigateur (localStorage). Pensez à faire une sauvegarde régulière depuis **Paramètres → Sauvegarde complète**.
 
 ### Mode cloud (avec Firebase)
 Les données sont automatiquement synchronisées dans le cloud et accessibles depuis tous vos appareils.

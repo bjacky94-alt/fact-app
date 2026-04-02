@@ -1,11 +1,12 @@
 import React, { useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import ThemeSwitch from '../components/ThemeSwitch'
 import PremiumSwitch from '../components/PremiumSwitch'
 import StickyFinancialHeader from '../components/StickyFinancialHeader'
 
 import {
   LayoutDashboard,
+  FileText,
   Receipt,
   CreditCard,
   Calendar,
@@ -19,6 +20,7 @@ import {
 
 const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+  { to: '/quotes', label: 'Devis', icon: FileText },
   { to: '/invoices', label: 'Factures', icon: Receipt },
   { to: '/expenses', label: 'Dépenses', icon: CreditCard },
   { to: '/leaves', label: 'Congés', icon: Calendar },
@@ -31,6 +33,7 @@ const navItems = [
 export default function Layout() {
   const [isCollapsed, setIsCollapsed] = useState(false)
   const location = useLocation()
+  const logoSrc = `${import.meta.env.BASE_URL}logo.svg`
   const currentTitle =
     navItems.find((item) => location.pathname.startsWith(item.to))?.label ||
     'Facturation'
@@ -40,7 +43,7 @@ export default function Layout() {
       <aside className="sidebarFixed">
         <div className="brand">
           <div className="logoMark">
-            <img src="/logo.svg" alt="NODEBOX" />
+            <img src={logoSrc} alt="NODEBOX" />
           </div>
           <div className="brandText">
             <div className="brandTitle">NODEBOX</div>
