@@ -538,6 +538,8 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
           </div>
         </div>
 
+        <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'right' }}>
           <div className="muted tiny" style={{ fontSize: 9, letterSpacing: 0.5 }}>🔵 TVA</div>
           <div className={`statusText ${textTvaClass}`} style={{ fontSize: 13, fontWeight: 700 }}>
@@ -545,12 +547,16 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
           </div>
         </div>
 
+        <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
+
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'right' }}>
           <div className="muted tiny" style={{ fontSize: 9, letterSpacing: 0.5 }}>🏛️ URSSAF</div>
           <div className={`statusText ${textUrssafClass}`} style={{ fontSize: 13, fontWeight: 700 }}>
             {fmtEUR(urssafRemaining)}
           </div>
         </div>
+
+        <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
 
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'right' }}
@@ -563,6 +569,8 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
             {fmtEUR(currentMonthPayments.total)}
           </div>
         </div>
+
+        <div style={{ width: 1, height: 28, background: 'var(--border)' }} />
 
         <div
           style={{ display: 'flex', flexDirection: 'column', gap: 2, textAlign: 'right' }}
@@ -638,11 +646,13 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
             {fmtEUR(currentMonthPayments.total)}
           </div>
           <div className="muted small" style={{ fontSize: 10, marginTop: 4 }}>
-            TVA {fmtEUR(currentMonthPayments.vat)} • URSSAF {fmtEUR(currentMonthPayments.urssaf)}
+            URSSAF {fmtEUR(currentMonthPayments.urssaf)}
+            {'  |  '}
+            TVA {fmtEUR(currentMonthPayments.vat)}
           </div>
         </div>
 
-        <div style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface2)' }}>
+        <div style={{ padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 10, background: 'var(--surface2)', borderLeft: '2px dashed var(--border)' }}>
           <div className="muted small" style={{ fontSize: 11, letterSpacing: 0.5 }}>
             ⏭️ À payer en {nextMonthPayments.label}
           </div>
@@ -650,7 +660,9 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
             {fmtEUR(nextMonthPayments.total)}
           </div>
           <div className="muted small" style={{ fontSize: 10, marginTop: 4 }}>
-            TVA {fmtEUR(nextMonthPayments.vat)} • URSSAF {fmtEUR(nextMonthPayments.urssaf)}
+            URSSAF {fmtEUR(nextMonthPayments.urssaf)}
+            {'  |  '}
+            TVA {fmtEUR(nextMonthPayments.vat)}
           </div>
         </div>
       </div>

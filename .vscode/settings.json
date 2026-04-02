@@ -7,6 +7,18 @@
         "/^cd /workspaces/fact-app && git add -A && git commit -m \"Ajout historique devis et améliorations interface\" && git push origin main$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd /workspaces/fact-app && gh run list --limit 1 --json databaseId,status,conclusion,workflowName,displayTitle,url$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /workspaces/fact-app && gh run watch 23891167997 --exit-status$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /workspaces/fact-app && git add src/components/StickyFinancialHeader\\.jsx \\.vscode/settings\\.json && git commit -m \"Ajuster séparations synthèse mensuelle\" && git push origin main$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
