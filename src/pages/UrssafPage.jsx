@@ -261,8 +261,11 @@ export default function UrssafPage() {
     })
   }
 
-  const markPaidToday = (key) => {
-    updateLine(key, { paidDate: currentISODate() })
+  const markPaid = (key) => {
+    const row = lines.find((line) => line.key === key)
+    const plannedDebitDate = String(row?.expectedDebitDate || '').trim()
+    const paidDate = /^\d{4}-\d{2}-\d{2}$/.test(plannedDebitDate) ? plannedDebitDate : currentISODate()
+    updateLine(key, { paidDate })
   }
 
   const unmarkPaid = (key) => {
@@ -401,7 +404,7 @@ export default function UrssafPage() {
                               Annuler
                             </button>
                           ) : (
-                            <button className="btnPrimary" type="button" onClick={() => markPaidToday(line.key)}>
+                            <button className="btnPrimary" type="button" onClick={() => markPaid(line.key)}>
                               Marquer payé
                             </button>
                           )}
