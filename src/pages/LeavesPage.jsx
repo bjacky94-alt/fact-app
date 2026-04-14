@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { loadInvoices, saveInvoices, workedDaysBetween, loadSettingsLike, bcUsedDays, clampToRemaining } from '../lib/invoices'
-
-const SETTINGS_KEY = 'fact_settings_v3'
+import { loadInvoices, saveInvoices, workedDaysBetween, leaveDurationInWorkdays } from '../lib/invoices'
 
 export default function LeavesPage() {
   const [leaves, setLeaves] = useState([])
@@ -215,15 +213,7 @@ export default function LeavesPage() {
                   {leaves.map((leave) => {
                     const start = new Date(leave.start)
                     const end = leave.end ? new Date(leave.end) : start
-                    
-                    // Calculer la durée en jours
-                    let duration = 1
-                    if (leave.end) {
-                      // Intervalle en jours
-                      duration = Math.floor((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1
-                    } else if (leave.isHalf) {
-                      duration = 0.5
-                    }
+                    const duration = leaveDurationInWorkdays(leave)
                     
                     const durationText = `${duration} jour${duration > 1 ? 's' : ''}`
                     

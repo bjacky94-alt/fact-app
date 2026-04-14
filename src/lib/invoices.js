@@ -417,6 +417,11 @@ function getLeaveDaysDeduction(leave) {
   return Math.max(0, count)
 }
 
+// Utilitaire partagé: durée d'un congé en jours ouvrés (hors week-ends et jours fériés)
+export function leaveDurationInWorkdays(leave) {
+  return getLeaveDaysDeduction(leave)
+}
+
 /**
  * Add N "worked days" after startISO (weekdays minus leaves).
  * - If startISO is itself a weekday and not leave day, it counts as day 1.
