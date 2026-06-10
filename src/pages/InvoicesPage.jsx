@@ -56,6 +56,11 @@ export default function InvoicesPage() {
     .filter((i) => i.status === "paid")
     .reduce((sum, i) => sum + invoiceTTC(i, defaultTjm), 0);
 
+  const currentYear = new Date().getFullYear();
+  const yearInvoicesTotalTTC = invoices
+    .filter((i) => Number(String(i.issueDate || "").slice(0, 4)) === currentYear)
+    .reduce((sum, i) => sum + invoiceTTC(i, defaultTjm), 0);
+
   const downloadPdfForInvoice = (inv) => {
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
@@ -216,6 +221,11 @@ export default function InvoicesPage() {
           <div className="kpi">
             <div className="label">Factures</div>
             <div className="kpiVal">{sortedInvoices.length}</div>
+          </div>
+
+          <div className="kpi">
+            <div className="label">Total factures {currentYear}</div>
+            <div className="kpiVal">{fmtEUR(yearInvoicesTotalTTC)}</div>
           </div>
 
           <div className="kpi">
