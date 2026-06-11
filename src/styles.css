@@ -814,12 +814,12 @@ html[data-theme="dark"] .tableWrap {
 
 .kpiRow {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 12px;
 }
 @media (max-width: 900px) {
   .kpiRow {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 1fr;
   }
 }
 

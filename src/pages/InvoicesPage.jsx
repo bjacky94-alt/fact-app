@@ -57,9 +57,9 @@ export default function InvoicesPage() {
     .reduce((sum, i) => sum + invoiceTTC(i, defaultTjm), 0);
 
   const currentYear = new Date().getFullYear();
-  const yearInvoicesTotalTTC = invoices
-    .filter((i) => Number(String(i.issueDate || "").slice(0, 4)) === currentYear)
-    .reduce((sum, i) => sum + invoiceTTC(i, defaultTjm), 0);
+  const yearInvoicesTotalHT = invoices
+    .filter((i) => i.status === "paid" && Number(String(i.paymentDate || "").slice(0, 4)) === currentYear)
+    .reduce((sum, i) => sum + invoiceHT(i, defaultTjm), 0);
 
   const downloadPdfForInvoice = (inv) => {
     try {
@@ -225,16 +225,16 @@ export default function InvoicesPage() {
 
           <div className="kpi">
             <div className="label">Total factures {currentYear}</div>
-            <div className="kpiVal">{fmtEUR(yearInvoicesTotalTTC)}</div>
+            <div className="kpiVal">{fmtEUR(yearInvoicesTotalHT)}</div>
           </div>
 
           <div className="kpi">
-            <div className="label">Encaissements HT</div>
+            <div className="label">Encaissement HT</div>
             <div className="kpiVal">{fmtEUR(totalHT)}</div>
           </div>
 
           <div className="kpi">
-            <div className="label">Encaissements TTC</div>
+            <div className="label">Encaissement TTC</div>
             <div className="kpiVal">{fmtEUR(totalTTC)}</div>
           </div>
         </div>

@@ -19,6 +19,14 @@
         "/^cd /workspaces/fact-app && git add src/components/StickyFinancialHeader\\.jsx \\.vscode/settings\\.json && git commit -m \"Ajuster séparations synthèse mensuelle\" && git push origin main$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^cd /workspaces/fact-app && git remote -v$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /workspaces/fact-app && git add src/pages/InvoicesPage\\.jsx && git commit -m \"feat\\(invoices\\): add yearly total KPI\" && git push origin main$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }
