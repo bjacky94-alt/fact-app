@@ -22,6 +22,11 @@ function isISO(iso) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '').trim())
 }
 
+function isDateInRange(isoDate, startISO, endISO) {
+  if (!isISO(isoDate) || !isISO(startISO) || !isISO(endISO)) return false
+  return isoDate >= startISO && isoDate <= endISO
+}
+
 function addMonthsISO(isoDate, monthsToAdd) {
   const raw = String(isoDate || '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ''
@@ -311,19 +316,22 @@ export default function DashboardPage() {
     let total = 0
     let janToJul = 0
     let augToDec = 0
+    const acompte1Start = `${vatYear}-01-01`
+    const acompte1End = `${vatYear}-07-15`
+    const acompte2Start = `${vatYear}-07-16`
+    const acompte2End = `${vatYear}-12-15`
 
     for (const inv of invoicesList) {
       if (inv.status !== 'paid') continue
 
       const paidDate = String(inv.paymentDate || inv.issueDate || '').trim()
-      if (yearFromISO(paidDate) !== vatYear) continue
+      if (!isISO(paidDate) || yearFromISO(paidDate) !== vatYear) continue
 
-      const month = Number(paidDate.slice(5, 7))
       const vat = invoiceTVA(inv, defaultTjm)
 
       total += vat
-      if (month >= 1 && month <= 7) janToJul += vat
-      if (month >= 8 && month <= 12) augToDec += vat
+      if (isDateInRange(paidDate, acompte1Start, acompte1End)) janToJul += vat
+      if (isDateInRange(paidDate, acompte2Start, acompte2End)) augToDec += vat
     }
 
     return {

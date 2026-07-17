@@ -49,6 +49,15 @@ function yearFromISO(iso) {
   return Number.isFinite(y) ? y : 0
 }
 
+function isISODate(iso) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '').trim())
+}
+
+function isDateInRange(isoDate, startISO, endISO) {
+  if (!isISODate(isoDate) || !isISODate(startISO) || !isISODate(endISO)) return false
+  return isoDate >= startISO && isoDate <= endISO
+}
+
 function addMonthsISO(isoDate, monthsToAdd) {
   const raw = String(isoDate || '').trim()
   if (!/^\d{4}-\d{2}-\d{2}$/.test(raw)) return ''
@@ -131,19 +140,22 @@ export default function TaxPage() {
     let total = 0
     let janToJul = 0
     let augToDec = 0
+    const acompte1Start = `${selectedYear}-01-01`
+    const acompte1End = `${selectedYear}-07-15`
+    const acompte2Start = `${selectedYear}-07-16`
+    const acompte2End = `${selectedYear}-12-15`
 
     for (const inv of loadInvoices()) {
       if (inv.status !== 'paid') continue
 
       const paidDate = String(inv.paymentDate || inv.issueDate || '').trim()
-      if (yearFromISO(paidDate) !== selectedYear) continue
+      if (!isISODate(paidDate) || yearFromISO(paidDate) !== selectedYear) continue
 
-      const month = Number(paidDate.slice(5, 7))
       const vat = invoiceTVA(inv, defaultTjm)
 
       total += vat
-      if (month >= 1 && month <= 7) janToJul += vat
-      if (month >= 8 && month <= 12) augToDec += vat
+      if (isDateInRange(paidDate, acompte1Start, acompte1End)) janToJul += vat
+      if (isDateInRange(paidDate, acompte2Start, acompte2End)) augToDec += vat
     }
 
     return {
@@ -299,18 +311,21 @@ export default function TaxPage() {
       let vatTotal = 0
       let janToJul = 0
       let augToDec = 0
+      const acompte1Start = `${y}-01-01`
+      const acompte1End = `${y}-07-15`
+      const acompte2Start = `${y}-07-16`
+      const acompte2End = `${y}-12-15`
 
       for (const inv of loadInvoices()) {
         if (inv.status !== 'paid') continue
         const paidDate = String(inv.paymentDate || inv.issueDate || '').trim()
-        if (yearFromISO(paidDate) !== y) continue
+        if (!isISODate(paidDate) || yearFromISO(paidDate) !== y) continue
 
-        const month = Number(paidDate.slice(5, 7))
         const vat = invoiceTVA(inv, defaultTjm)
 
         vatTotal += vat
-        if (month >= 1 && month <= 7) janToJul += vat
-        if (month >= 8 && month <= 12) augToDec += vat
+        if (isDateInRange(paidDate, acompte1Start, acompte1End)) janToJul += vat
+        if (isDateInRange(paidDate, acompte2Start, acompte2End)) augToDec += vat
       }
 
       // Calculer TVA déductible
@@ -768,7 +783,7 @@ export default function TaxPage() {
               <div className="muted small">Acompte 1 (15 juillet)</div>
               <div style={{ fontWeight: 700, fontSize: 14, marginTop: 4 }}>{fmtEUR(acompte1)}</div>
               <div className="muted small" style={{ marginTop: 4 }}>
-                {yearData.manualAcompte1 !== undefined && yearData.manualAcompte1 !== null ? 'Manuel' : `Auto (80% jan→juil: ${fmtEUR(acompte1Auto)})`}
+                {yearData.manualAcompte1 !== undefined && yearData.manualAcompte1 !== null ? 'Manuel' : `Auto (80% 01/01→15/07: ${fmtEUR(acompte1Auto)})`}
               </div>
               {acompte1Paid > 0 ? (
                 <div style={{ marginTop: 8 }}>
@@ -800,7 +815,7 @@ export default function TaxPage() {
               <div className="muted small">Acompte 2 (15 décembre)</div>
               <div style={{ fontWeight: 700, fontSize: 14, marginTop: 4 }}>{fmtEUR(acompte2)}</div>
               <div className="muted small" style={{ marginTop: 4 }}>
-                {yearData.manualAcompte2 !== undefined && yearData.manualAcompte2 !== null ? 'Manuel' : `Auto (80% aoû→déc: ${fmtEUR(acompte2Auto)})`}
+                {yearData.manualAcompte2 !== undefined && yearData.manualAcompte2 !== null ? 'Manuel' : `Auto (80% 16/07→15/12: ${fmtEUR(acompte2Auto)})`}
               </div>
               {acompte2Paid > 0 ? (
                 <div style={{ marginTop: 8 }}>
@@ -838,7 +853,7 @@ export default function TaxPage() {
           <div className="grid2">
             <div className="field">
               <div className="label">
-                Acompte 1 (janvier → juillet)
+                Acompte 1 (01/01 → 15/07)
                 {yearData.manualAcompte1 !== undefined && yearData.manualAcompte1 !== null ? (
                   <span style={{ color: 'var(--accent)', marginLeft: 8 }}>
                     • manuel
@@ -874,7 +889,7 @@ export default function TaxPage() {
             </div>
             <div className="field">
               <div className="label">
-                Acompte 2 (août → décembre)
+                Acompte 2 (16/07 → 15/12)
                 {yearData.manualAcompte2 !== undefined && yearData.manualAcompte2 !== null ? (
                   <span style={{ color: 'var(--accent)', marginLeft: 8 }}>
                     • manuel
@@ -978,7 +993,7 @@ export default function TaxPage() {
           )}
 
           <div className="muted small" style={{ marginTop: 10 }}>
-            Formule appliquée: acompte 1 = 80% de la TVA (janvier→juillet), acompte 2 = 80% de la TVA (août→décembre), puis Solde = TVA nette − acomptes.
+            Formule appliquée: acompte 1 = 80% de la TVA (factures payées du 01/01 au 15/07), acompte 2 = 80% de la TVA (factures payées du 16/07 au 15/12), puis Solde = TVA nette − acomptes.
           </div>
         </div>
       </div>

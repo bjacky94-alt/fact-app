@@ -17,6 +17,11 @@ function isISO(iso) {
   return /^\d{4}-\d{2}-\d{2}$/.test(String(iso || '').trim())
 }
 
+function isDateInRange(isoDate, startISO, endISO) {
+  if (!isISO(isoDate) || !isISO(startISO) || !isISO(endISO)) return false
+  return isoDate >= startISO && isoDate <= endISO
+}
+
 function toISO(year, month, day) {
   const yyyy = String(year)
   const mm = String(month).padStart(2, '0')
@@ -216,18 +221,21 @@ export default function StickyFinancialHeader({ compact = false, showAlert = fal
     let total = 0
     let janToJul = 0
     let augToDec = 0
+    const acompte1Start = `${curYear}-01-01`
+    const acompte1End = `${curYear}-07-15`
+    const acompte2Start = `${curYear}-07-16`
+    const acompte2End = `${curYear}-12-15`
 
     for (const inv of invoices) {
       if (inv.status !== 'paid') continue
       const paidDate = String(inv.paymentDate || inv.issueDate || '').trim()
-      if (yearFromISO(paidDate) !== curYear) continue
+      if (!isISO(paidDate) || yearFromISO(paidDate) !== curYear) continue
 
-      const month = Number(paidDate.slice(5, 7))
       const vat = invoiceTVA(inv, defaultTjm)
 
       total += vat
-      if (month >= 1 && month <= 7) janToJul += vat
-      if (month >= 8 && month <= 12) augToDec += vat
+      if (isDateInRange(paidDate, acompte1Start, acompte1End)) janToJul += vat
+      if (isDateInRange(paidDate, acompte2Start, acompte2End)) augToDec += vat
     }
 
     return {
