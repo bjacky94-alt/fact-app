@@ -7,6 +7,7 @@
      ========================================================================== */
 
 const INVOICES_KEY = "nodebox_invoices";
+const SETTINGS_KEY = "fact_settings_v3";
 const LEAVES_KEY = "fact_leaves_v2";
 const LEAVES_LEGACY_KEY = "nodebox_leaves";
 
@@ -104,7 +105,40 @@ export function loadInvoices() {
   try {
     const raw = localStorage.getItem(INVOICES_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    return Array.isArray(parsed) ? parsed : [];
+    if (!Array.isArray(parsed)) return [];
+
+    const configuredTjm = Number(loadSettingsLike(SETTINGS_KEY).tjmHt ?? 0) || 0;
+    const tjmByPurchaseOrder = new Map();
+    parsed.forEach((invoice) => {
+      const purchaseOrder = String(invoice?.purchaseOrder || "").trim();
+      if (purchaseOrder && invoice?.tjmHt != null && !tjmByPurchaseOrder.has(purchaseOrder)) {
+        tjmByPurchaseOrder.set(purchaseOrder, Number(invoice.tjmHt) || 0);
+      }
+    });
+
+    let migrated = false;
+    const invoices = parsed.map((invoice) => {
+      if (!invoice || typeof invoice !== "object" || invoice.tjmHt != null) {
+        return invoice;
+      }
+
+      migrated = true;
+      const purchaseOrder = String(invoice.purchaseOrder || "").trim();
+      return {
+        ...invoice,
+        tjmHt: purchaseOrder && tjmByPurchaseOrder.has(purchaseOrder)
+          ? tjmByPurchaseOrder.get(purchaseOrder)
+          : configuredTjm,
+      };
+    });
+
+    if (migrated) {
+      try {
+        localStorage.setItem(INVOICES_KEY, JSON.stringify(invoices));
+      } catch {}
+    }
+
+    return invoices;
   } catch {
     return [];
   }
@@ -200,11 +234,12 @@ export function fmtEUR(n) {
      ========================================================================== */
 
 export function invoiceHT(inv, defaultTjm) {
+  const invoiceTjm = Number(inv?.tjmHt ?? defaultTjm) || 0;
   return (inv.items || []).reduce((sum, it) => {
     const qty = Number(it.qty) || 0;
     const pu =
       it.unitPrice === null || it.unitPrice === undefined || it.unitPrice === 0
-        ? Number(defaultTjm) || 0
+        ? invoiceTjm
         : Number(it.unitPrice) || 0;
     return sum + qty * pu;
   }, 0);

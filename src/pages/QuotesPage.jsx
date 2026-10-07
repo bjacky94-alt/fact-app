@@ -1,7 +1,7 @@
 import React from 'react'
 import { Download, FileText, RefreshCw, Trash2 } from 'lucide-react'
 import { downloadQuotePdf } from '../lib/quotePdf'
-import { fmtEUR, loadSettingsLike } from '../lib/invoices'
+import { fmtEUR, isoToday, loadSettingsLike } from '../lib/invoices'
 
 const SETTINGS_KEY = 'fact_settings_v3'
 const QUOTES_HISTORY_KEY = 'fact_quotes_history_v1'
@@ -28,13 +28,10 @@ function computeQuoteTotalsFromDraft(quoteDraft) {
 }
 
 function buildQuoteNumberFromPeriodStart(periodStart) {
-  if (!periodStart) {
-    return 'D-2026-04'
-  }
-
-  const [year, month] = periodStart.split('-')
-  if (!year || !month) {
-    return 'D-2026-04'
+  const [year, month] = String(periodStart || isoToday()).split('-')
+  if (!/^\d{4}$/.test(year) || !/^(0[1-9]|1[0-2])$/.test(month)) {
+    const [currentYear, currentMonth] = isoToday().split('-')
+    return `D-${currentMonth}-${currentYear}`
   }
 
   return `D-${month}-${year}`
@@ -43,11 +40,11 @@ function buildQuoteNumberFromPeriodStart(periodStart) {
 function createDraftFromSettings(settings) {
   const durationDays = Number(settings.missionQuotaDays) || 120
   const unitPrice = Number(settings.tjmHt) || 425
-  const periodStart = settings.missionStartDate || '2026-04-01'
+  const periodStart = settings.missionStartDate || isoToday()
 
   return {
     number: buildQuoteNumberFromPeriodStart(periodStart),
-    issueDate: '2026-03-31',
+    issueDate: isoToday(),
     subject: 'Prestations pour la DGFiP',
     providerName: settings.companyName || 'JACKY BAILLY - CALLIXTE',
     providerAddress: settings.companyAddress || '8 rue Labert Camus - 94230 Cachan',

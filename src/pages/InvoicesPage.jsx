@@ -65,7 +65,7 @@ export default function InvoicesPage() {
     try {
       const raw = localStorage.getItem(SETTINGS_KEY);
       const settingsData = raw ? JSON.parse(raw) : {};
-      const tjm = Number(settingsData.tjmHt ?? 0) || 0;
+      const tjm = Number(inv.tjmHt ?? settingsData.tjmHt ?? 0) || 0;
       const isPaid = inv.status === "paid";
       downloadInvoicePdf(inv, settingsData, tjm, isPaid);
     } catch (err) {
@@ -95,7 +95,7 @@ export default function InvoicesPage() {
       try {
         const raw = localStorage.getItem(SETTINGS_KEY);
         const settingsData = raw ? JSON.parse(raw) : {};
-        const tjm = Number(settingsData.tjmHt ?? 0) || 0;
+        const tjm = Number(updatedInvoice.tjmHt ?? settingsData.tjmHt ?? 0) || 0;
         downloadInvoicePdf(updatedInvoice, settingsData, tjm, true);
       } catch (err) {
         console.error("Erreur lors du téléchargement PDF:", err);
@@ -130,16 +130,32 @@ export default function InvoicesPage() {
 
     const delayDays = Number(settings.paymentDelayDays ?? 60) || 60;
 
-    const missionStart = String(settings.missionStartDate ?? "").trim();
-    const quota = Number(settings.missionQuotaDays ?? 0) || 0;
-
-    const lastSameBC = [...invoices]
-      .filter((i) => String(i.purchaseOrder || "").trim() === purchaseOrder)
+    const sameBCInvoices = invoices.filter(
+      (i) => String(i.purchaseOrder || "").trim() === purchaseOrder
+    );
+    const lastSameBC = [...sameBCInvoices]
       .sort((a, b) => (a.issueDate > b.issueDate ? -1 : 1))[0];
+    const firstSameBC = [...sameBCInvoices].sort((a, b) =>
+      String(a.periodStart || a.issueDate || "").localeCompare(
+        String(b.periodStart || b.issueDate || "")
+      )
+    )[0];
+    const missionStart = String(
+      sameBCInvoices.find((i) => i.missionStartDate)?.missionStartDate ||
+        firstSameBC?.periodStart ||
+        settings.missionStartDate ||
+        issueDate
+    ).trim();
+    const savedQuota = sameBCInvoices.find(
+      (i) => i.missionQuotaDays != null
+    )?.missionQuotaDays;
+    const quota = Number(savedQuota ?? settings.missionQuotaDays ?? 0) || 0;
+    const savedTjm = sameBCInvoices.find((i) => i.tjmHt != null)?.tjmHt;
+    const tjmHt = Number(savedTjm ?? settings.tjmHt ?? 0) || 0;
 
     const periodStart = lastSameBC
       ? nextWeekdayISO(lastSameBC.periodEnd || lastSameBC.issueDate)
-      : missionStart || issueDate;
+      : missionStart;
 
     const periodEnd = issueDate;
 
@@ -158,6 +174,9 @@ export default function InvoicesPage() {
 
       periodStart,
       periodEnd,
+      missionStartDate: missionStart,
+      missionQuotaDays: quota,
+      tjmHt,
 
       issueDate,
       dueDate: addDaysISO(issueDate, delayDays),
@@ -198,9 +217,6 @@ export default function InvoicesPage() {
         <div className="row">
           <div>
             <div style={{ fontWeight: 900 }}>Factures</div>
-            <div className="hint">
-              Bouton "Payée" dispo directement dans la liste.
-            </div>
           </div>
 
           <div className="actions">

@@ -1,11 +1,8 @@
 import React, { useState } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
-import ThemeSwitch from '../components/ThemeSwitch'
-import PremiumSwitch from '../components/PremiumSwitch'
 import StickyFinancialHeader from '../components/StickyFinancialHeader'
 
 import {
-  LayoutDashboard,
   FileText,
   Receipt,
   CreditCard,
@@ -13,18 +10,15 @@ import {
   Settings,
   Landmark,
   BadgePercent,
-  Wallet,
   Menu,
   X,
 } from 'lucide-react'
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/quotes', label: 'Devis', icon: FileText },
   { to: '/invoices', label: 'Factures', icon: Receipt },
   { to: '/expenses', label: 'Dépenses', icon: CreditCard },
   { to: '/leaves', label: 'Congés', icon: Calendar },
-  { to: '/treasury', label: 'Trésorerie', icon: Wallet },
   { to: '/tax', label: 'Impôts', icon: BadgePercent },
   { to: '/urssaf', label: 'URSSAF', icon: Landmark },
   { to: '/settings', label: 'Paramètres', icon: Settings },
@@ -73,8 +67,6 @@ export default function Layout() {
         </nav>
 
         <div className="sidebarBottomFixed">
-          <ThemeSwitch />
-          <PremiumSwitch />
           <button
             type="button"
             className="btnSidebar"

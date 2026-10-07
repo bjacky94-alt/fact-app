@@ -48,12 +48,10 @@ export default function InvoiceDetailPage() {
   const nav = useNavigate();
 
   const settings = loadSettingsLike(SETTINGS_KEY);
-  const defaultTjm = Number(settings.tjmHt ?? 0) || 0;
+  const configuredTjm = Number(settings.tjmHt ?? 0) || 0;
 
-  const quota = Number(settings.missionQuotaDays ?? 0) || 0;
-  const missionStart = String(settings.missionStartDate ?? "").trim();
-  const missionEnd =
-    missionStart && quota > 0 ? missionEndByQuota(missionStart, quota) : "";
+  const configuredQuota = Number(settings.missionQuotaDays ?? 0) || 0;
+  const configuredMissionStart = String(settings.missionStartDate ?? "").trim();
 
   const [invoices, setInvoices] = React.useState(() =>
     loadInvoices()
@@ -62,6 +60,34 @@ export default function InvoiceDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = React.useState(false);
 
   const inv = invoices.find((x) => x.id === id);
+  const defaultTjm = Number(inv?.tjmHt ?? configuredTjm) || 0;
+  const invoicePurchaseOrder = String(inv?.purchaseOrder || "").trim();
+  const sameBCInvoices = inv
+    ? invoices.filter(
+        (invoice) =>
+          String(invoice.purchaseOrder || "").trim() === invoicePurchaseOrder
+      )
+    : [];
+  const firstSameBC = [...sameBCInvoices].sort((a, b) =>
+    String(a.periodStart || a.issueDate || "").localeCompare(
+      String(b.periodStart || b.issueDate || "")
+    )
+  )[0];
+  const missionStart = String(
+    inv?.missionStartDate ||
+      sameBCInvoices.find((invoice) => invoice.missionStartDate)
+        ?.missionStartDate ||
+      firstSameBC?.periodStart ||
+      configuredMissionStart
+  ).trim();
+  const savedQuota = sameBCInvoices.find(
+    (invoice) => invoice.missionQuotaDays != null
+  )?.missionQuotaDays;
+  const quota = Number(
+    inv?.missionQuotaDays ?? savedQuota ?? configuredQuota
+  ) || 0;
+  const missionEnd =
+    missionStart && quota > 0 ? missionEndByQuota(missionStart, quota) : "";
 
   const showMsg = (t) => {
     setMsg(t);
@@ -208,8 +234,7 @@ export default function InvoiceDetailPage() {
               </span>
             </div>
             <div className="hint">
-              Période facturée : {inv.periodStart} → {inv.periodEnd} • Qté auto
-              = jours ouvrés - congés
+              Période facturée : {inv.periodStart} → {inv.periodEnd}
             </div>
           </div>
 
@@ -260,11 +285,7 @@ export default function InvoiceDetailPage() {
         <div className="panel" style={{ marginBottom: 16 }}>
           <div className="panelHeader">
             <div>
-              <div className="panelTitle">Période de mission (automatique)</div>
-              <div className="panelDesc">
-                Début = Paramètres • Fin = Quota jours ouvrés (week-ends +
-                congés exclus)
-              </div>
+              <div className="panelTitle">Période de mission</div>
             </div>
           </div>
 

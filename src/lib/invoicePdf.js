@@ -518,7 +518,7 @@ function drawMainTable(
     const qty = Number(it.qty) || 0;
     const pu =
       it.unitPrice === null || it.unitPrice === undefined || it.unitPrice === 0
-        ? Number(defaultTjm) || 0
+        ? Number(inv.tjmHt ?? defaultTjm) || 0
         : Number(it.unitPrice) || 0;
 
     const total = qty * pu;

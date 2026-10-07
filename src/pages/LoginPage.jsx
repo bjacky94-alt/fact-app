@@ -23,7 +23,7 @@ export default function LoginPage() {
     setLoading(false)
 
     if (success) {
-      navigate('/dashboard')
+      navigate('/quotes')
     }
   }
 
@@ -109,7 +109,7 @@ export default function LoginPage() {
 
         <div className="mt-8 pt-6 border-t border-gray-200">
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate('/quotes')}
             className="w-full py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
           >
             Continuer sans compte (hors ligne)
